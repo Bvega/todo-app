@@ -1,70 +1,96 @@
-// Get DOM elements
-const taskInput = document.getElementById("taskInput");
-const addTaskButton = document.getElementById("addTaskButton");
-const taskList = document.getElementById("taskList");
+document.addEventListener("DOMContentLoaded", () => {
+  const taskInput = document.getElementById("taskInput");
+  const addTaskButton = document.getElementById("addTaskButton");
+  const taskList = document.getElementById("taskList");
 
-// Add new task
-addTaskButton.addEventListener("click", function () {
-  const taskText = taskInput.value.trim();
-  if (taskText === "") {
-    alert("Please enter a task!");
-    return;
-  }
+  // Load existing tasks or start with an empty list
+  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 
-  // Create list item
-  const listItem = document.createElement("li");
+  // Save current tasks to local storage
+  const saveTasks = () => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  };
 
-  // Checkbox for completion
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.addEventListener("change", function () {
-    listItem.classList.toggle("completed", this.checked);
-  });
+  // Render all tasks to the UI
+  const renderTasks = () => {
+    taskList.innerHTML = ""; // Clear the list first
 
-  // Span for task text
-  const span = document.createElement("span");
-  span.innerText = taskText;
+    tasks.forEach((task, index) => {
+      const li = document.createElement("li");
+      li.className = "flex items-center justify-between bg-gray-100 px-4 py-2 rounded";
 
-  // Enable inline editing on double-click
-  span.addEventListener("dblclick", function () {
-    const editInput = document.createElement("input");
-    editInput.type = "text";
-    editInput.value = span.innerText;
-    listItem.replaceChild(editInput, span);
-    editInput.focus();
+      // Create a wrapper to hold the icon and text
+      const textWrapper = document.createElement("div");
+      textWrapper.className = "flex items-center flex-1 gap-2 cursor-pointer";
 
-    function saveEdit() {
-      const newText = this.value.trim();
-      if (newText !== "") span.innerText = newText;
-      listItem.replaceChild(span, this);
-    }
+      // Create SVG icon for checkmark (done) or empty box (not done)
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("width", "24");
+      icon.setAttribute("height", "24");
+      icon.classList.add("flex-shrink-0");
 
-    editInput.addEventListener("blur", saveEdit);
-    editInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") saveEdit.call(this);
+      // Define the inner SVG path
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+      if (task.done) {
+        // Green checkmark box
+        path.setAttribute("fill", "#10B981"); // Tailwind green-500
+        path.setAttribute("d", "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z");
+      } else {
+        // Empty box outline
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#9CA3AF"); // Tailwind gray-400
+        path.setAttribute("stroke-width", "2");
+        path.setAttribute("d", "M5 5h14v14H5z");
+      }
+
+      icon.appendChild(path);
+
+      // Create the task text
+      const text = document.createElement("span");
+      text.textContent = task.text;
+      text.className = task.done ? "line-through text-gray-500" : "";
+
+      // Toggle the "done" state when the wrapper is clicked
+      textWrapper.onclick = () => {
+        tasks[index].done = !tasks[index].done;
+        saveTasks();
+        renderTasks();
+      };
+
+      textWrapper.appendChild(icon);
+      textWrapper.appendChild(text);
+
+      // Create delete button
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "❌";
+      delBtn.className = "ml-2 text-red-500 hover:text-red-700";
+      delBtn.onclick = () => {
+        tasks.splice(index, 1);
+        saveTasks();
+        renderTasks();
+      };
+
+      // Add everything to the list item
+      li.appendChild(textWrapper);
+      li.appendChild(delBtn);
+      taskList.appendChild(li);
     });
-  });
+  };
 
-  // Delete button
-  const deleteButton = document.createElement("button");
-  deleteButton.innerText = "Delete";
-  deleteButton.addEventListener("click", function () {
-    taskList.removeChild(listItem);
-  });
+  // Add new task
+  addTaskButton.onclick = () => {
+    const value = taskInput.value.trim();
+    if (value) {
+      tasks.push({ text: value, done: false });
+      taskInput.value = "";
+      saveTasks();
+      renderTasks();
+    }
+  };
 
-  // Assemble and append
-  listItem.appendChild(checkbox);
-  listItem.appendChild(span);
-  listItem.appendChild(deleteButton);
-  taskList.appendChild(listItem);
-
-  // Clear input
-  taskInput.value = "";
+  // Initial rendering
+  renderTasks();
 });
-
-// Optional: Remove by clicking item (commented out since delete button handles it)
-// taskList.addEventListener("click", function (event) {
-//   if (event.target.tagName === "LI") {
-//     taskList.removeChild(event.target);
-//   }
-// });
