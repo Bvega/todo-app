@@ -1,0 +1,4 @@
+1. Test all features: checkboxes, delete buttons, inline editing
+2. Refactor JavaScript code for readability
+3. Add CSS styling for the to-do list app
+4. Deploy the app on GitHub Pages or a static host
